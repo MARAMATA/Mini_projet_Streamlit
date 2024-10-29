@@ -24,24 +24,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 1. Chargement du fichier de données
-fichier = st.file_uploader("📁 Charger le fichier de données des ventes", type=["csv", "txt", "xlsx", "xls"])
-
-# Charger le jeu de données
-if fichier is not None:
-    if fichier.name.endswith('.csv'):
-        df = pd.read_csv(fichier)
-    elif fichier.name.endswith(('.xlsx', '.xls')):
-        df = pd.read_excel(fichier)
-    elif fichier.name.endswith('.txt'):
-        df = pd.read_csv(fichier, delimiter="\t")
-else:
-    df = pd.read_csv("Superstore.csv")  # Chemin vers le fichier de données par défaut dans le conteneur
-
-# 2. Nettoyage des données
-df.columns = [col.capitalize() for col in df.columns]
-df.drop_duplicates(inplace=True)
-
 # Define a dictionary for all states in the dataset with full name, latitude, and longitude
 state_info = {
     "AL": {"full_name": "Alabama", "latitude": 32.3182, "longitude": -86.9023},
@@ -97,6 +79,77 @@ state_info = {
     "DC": {"full_name": "District of Columbia", "latitude": 38.9072, "longitude": -77.0369},
 }
 
+# 1. Chargement du fichier de données
+fichier = st.file_uploader("📁 Charger le fichier de données des ventes", type=["csv", "txt", "xlsx", "xls"])
+
+# Charger le jeu de données
+if fichier is not None:
+    if fichier.name.endswith('.csv'):
+        df = pd.read_csv(fichier)
+    elif fichier.name.endswith(('.xlsx', '.xls')):
+        df = pd.read_excel(fichier)
+    elif fichier.name.endswith('.txt'):
+        df = pd.read_csv(fichier, delimiter="\t")
+else:
+    df = pd.read_csv("Superstore.csv", delimiter='\t')
+
+
+    def load_data(url):
+        try:
+            # Essayer d'ouvrir en tant que CSV avec une virgule comme délimiteur
+            print("Trying to load as CSV with comma delimiter...")
+            df = pd.read_csv(url, delimiter=',')
+            print("Data loaded successfully as CSV with comma delimiter.")
+            return df
+        except pd.errors.ParserError:
+            print("Failed to load as CSV with comma delimiter. Trying semicolon...")
+
+        try:
+            # Essayer d'ouvrir en tant que CSV avec un point-virgule comme délimiteur
+            print("Trying to load as CSV with semicolon delimiter...")
+            df = pd.read_csv(url, delimiter=';')
+            print("Data loaded successfully as CSV with semicolon delimiter.")
+            return df
+        except pd.errors.ParserError:
+            print("Failed to load as CSV with semicolon delimiter. Trying tab...")
+
+        try:
+            # Essayer d'ouvrir en tant que CSV avec tabulation comme délimiteur
+            print("Trying to load as CSV with tab delimiter...")
+            df = pd.read_csv(url, delimiter='\t')
+            print("Data loaded successfully as CSV with tab delimiter.")
+            return df
+        except pd.errors.ParserError:
+            print("Failed to load as CSV with tab delimiter. Trying Excel...")
+
+        try:
+            # Essayer d'ouvrir en tant que fichier Excel
+            print("Trying to load as Excel file...")
+            df = pd.read_excel(url, engine='openpyxl')
+            print("Data loaded successfully as Excel file.")
+            return df
+        except Exception as e:
+            print(f"Failed to load as Excel file: {e}")
+
+        print("All attempts to load data failed.")
+        return None
+
+
+    # Vérifier les noms des colonnes
+    print("Colonnes du DataFrame:", df.columns)
+
+    # Adapter en fonction du nom exact de la colonne 'State'
+    if 'State' in df.columns:  # Remplacez 'State' par le nom exact si différent
+        df["State_complet"] = df["State"].map(lambda x: state_info.get(x, {}).get("full_name", ""))
+    else:
+        print("The 'State' column is missing from the dataset.")
+
+# 2. Nettoyage des données
+df.columns = [col.capitalize() for col in df.columns]
+df.drop_duplicates(inplace=True)
+
+
+
 # Map full state names, latitudes, and longitudes to new columns
 df["State_complet"] = df["State"].map(lambda x: state_info.get(x, {}).get("full_name", ""))
 df["Latitude"] = df["State"].map(lambda x: state_info.get(x, {}).get("latitude", None))
@@ -128,14 +181,14 @@ region_selectionnee = st.sidebar.multiselect("Sélectionner la région", options
 # Filtrer les états en fonction de la région sélectionnée
 if region_selectionnee:
     df = df[df["Region"].isin(region_selectionnee)]
-etats_disponibles = df["State"].unique()
+etats_disponibles = df["State_complet"].unique()
 
 # Filtre pour l'état
 etat_selectionne = st.sidebar.multiselect("Sélectionner l'état", options=sorted(etats_disponibles))
 
 # Filtrer les villes en fonction de l'état sélectionné
 if etat_selectionne:
-    df = df[df["State"].isin(etat_selectionne)]
+    df = df[df["State_complet"].isin(etat_selectionne)]
 villes_disponibles = df["City"].unique()
 
 # Filtre pour la ville
@@ -144,10 +197,10 @@ ville_selectionnee = st.sidebar.multiselect("Sélectionner la ville", options=so
 # Mise à jour automatique des régions et états basés sur la sélection des villes
 if ville_selectionnee:
     df_ville = df[df["City"].isin(ville_selectionnee)]
-    etat_selectionne = df_ville["State"].unique().tolist()
+    etat_selectionne = df_ville["State_complet"].unique().tolist()
     region_selectionnee = df_ville["Region"].unique().tolist()
 elif etat_selectionne and not ville_selectionnee:
-    df_etat = df[df["State"].isin(etat_selectionne)]
+    df_etat = df[df["State_complet"].isin(etat_selectionne)]
     region_selectionnee = df_etat["Region"].unique().tolist()
 
 # Afficher les sélections pour la Région, l'État, et la Ville
@@ -158,7 +211,7 @@ st.sidebar.write("Ville(s) sélectionnée(s) :", ", ".join(ville_selectionnee) i
 # Filtrer le dataframe en fonction des sélections finales
 df_filtre = df[
     (df["Region"].isin(region_selectionnee) if region_selectionnee else df["Region"].notna()) &
-    (df["State"].isin(etat_selectionne) if etat_selectionne else df["State"].notna()) &
+    (df["State_complet"].isin(etat_selectionne) if etat_selectionne else df["State_complet"].notna()) &
     (df["City"].isin(ville_selectionnee) if ville_selectionnee else df["City"].notna())
 ]
 
