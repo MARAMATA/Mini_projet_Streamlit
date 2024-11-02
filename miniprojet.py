@@ -85,7 +85,6 @@ url_github = "https://raw.githubusercontent.com/MARAMATA/Mini_projet_Streamlit/m
 # 1. Chargement du fichier de données
 fichier = st.file_uploader("📁 Charger le fichier de données des ventes", type=["csv", "txt", "xlsx", "xls"])
 
-
 def charger_dataframe(fichier, chemin=None, url=None):
     """Fonction pour charger le dataframe depuis un fichier, un chemin local ou une URL."""
     try:
@@ -102,7 +101,7 @@ def charger_dataframe(fichier, chemin=None, url=None):
         elif chemin:
             df = pd.read_csv(chemin)
 
-        # Charger depuis l'URL GitHub
+        # Charger depuis l'URL GitHub si `url` est fourni
         elif url:
             df = pd.read_csv(url)
 
@@ -116,9 +115,8 @@ def charger_dataframe(fichier, chemin=None, url=None):
         st.error(f"Erreur lors du chargement du fichier : {e}")
         return None
 
-
 # Charger le jeu de données
-df = charger_dataframe(fichier, "Superstore.csv", url_github)
+df = charger_dataframe(fichier, "Superstore.csv", url=url_github)
 
 # Vérification du chargement des données avant de continuer
 if df is not None:
