@@ -1,15 +1,15 @@
 {
+  "version": 2,
   "builds": [
     {
       "src": "miniprojet.py",
       "use": "@vercel/python"
-
     }
   ],
-  "routes":[
-    {
-      "src": "/(.*)",
-      "dest": "miniprojet.py"
+  "functions": {
+    "miniprojet.py": {
+      "maxDuration": 10,
+      "memory": 128
     }
-  ]
+  }
 }
