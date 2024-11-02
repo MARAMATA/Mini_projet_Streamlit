@@ -82,6 +82,9 @@ state_info = {
 # 1. Chargement du fichier de données
 fichier = st.file_uploader("📁 Charger le fichier de données des ventes", type=["csv", "txt", "xlsx", "xls"])
 
+# Chemin local vers le fichier par défaut
+chemin_local = "~/OneDrive/Bureau/M1DSIA/STREAMLIT/Mini_projet/mini_projet/Superstore.csv"
+
 # Charger le jeu de données
 if fichier is not None:
     if fichier.name.endswith('.csv'):
@@ -91,49 +94,19 @@ if fichier is not None:
     elif fichier.name.endswith('.txt'):
         df = pd.read_csv(fichier, delimiter="\t")
 else:
-    df = pd.read_csv("Superstore.csv", delimiter='\t')
+    # Charger le fichier Superstore.csv depuis le chemin local
+    try:
+        df = pd.read_csv(chemin_local, delimiter='\t')
+        print("Fichier Superstore.csv chargé avec succès depuis le chemin local.")
+    except Exception as e:
+        print(f"Erreur lors du chargement du fichier Superstore.csv : {e}")
+        df = None
 
-
-    def load_data(url):
-        try:
-            # Essayer d'ouvrir en tant que CSV avec une virgule comme délimiteur
-            print("Trying to load as CSV with comma delimiter...")
-            df = pd.read_csv(url, delimiter=',')
-            print("Data loaded successfully as CSV with comma delimiter.")
-            return df
-        except pd.errors.ParserError:
-            print("Failed to load as CSV with comma delimiter. Trying semicolon...")
-
-        try:
-            # Essayer d'ouvrir en tant que CSV avec un point-virgule comme délimiteur
-            print("Trying to load as CSV with semicolon delimiter...")
-            df = pd.read_csv(url, delimiter=';')
-            print("Data loaded successfully as CSV with semicolon delimiter.")
-            return df
-        except pd.errors.ParserError:
-            print("Failed to load as CSV with semicolon delimiter. Trying tab...")
-
-        try:
-            # Essayer d'ouvrir en tant que CSV avec tabulation comme délimiteur
-            print("Trying to load as CSV with tab delimiter...")
-            df = pd.read_csv(url, delimiter='\t')
-            print("Data loaded successfully as CSV with tab delimiter.")
-            return df
-        except pd.errors.ParserError:
-            print("Failed to load as CSV with tab delimiter. Trying Excel...")
-
-        try:
-            # Essayer d'ouvrir en tant que fichier Excel
-            print("Trying to load as Excel file...")
-            df = pd.read_excel(url, engine='openpyxl')
-            print("Data loaded successfully as Excel file.")
-            return df
-        except Exception as e:
-            print(f"Failed to load as Excel file: {e}")
-
-        print("All attempts to load data failed.")
-        return None
-
+# Affichage du DataFrame chargé
+if df is not None:
+    st.write("Aperçu des données :", df.head())
+else:
+    st.error("Impossible de charger les données.")
 
     # Vérifier les noms des colonnes
     print("Colonnes du DataFrame:", df.columns)
