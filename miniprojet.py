@@ -79,33 +79,50 @@ state_info = {
     "DC": {"full_name": "District of Columbia", "latitude": 38.9072, "longitude": -77.0369},
 }
 
+# URL GitHub pour le fichier Superstore.csv
+url_github = "https://raw.githubusercontent.com/MARAMATA/Mini_projet_Streamlit/master/Superstore.csv"
+
 # 1. Chargement du fichier de données
 fichier = st.file_uploader("📁 Charger le fichier de données des ventes", type=["csv", "txt", "xlsx", "xls"])
 
-# Chemin local vers le fichier par défaut
-chemin_local = "~/OneDrive/Bureau/M1DSIA/STREAMLIT/Mini_projet/mini_projet/Superstore.csv"
 
-def charger_dataframe(fichier, chemin):
-    """Fonction pour charger le dataframe en essayant plusieurs délimiteurs."""
+def charger_dataframe(fichier, chemin=None, url=None):
+    """Fonction pour charger le dataframe depuis un fichier, un chemin local ou une URL."""
     try:
-        df = pd.read_csv(fichier or chemin, delimiter=',')
-        if len(df.columns) == 1:  # Vérifie si une seule colonne est détectée
-            df = pd.read_csv(fichier or chemin, delimiter=';')
-        if len(df.columns) == 1:  # Réessaie avec une tabulation
-            df = pd.read_csv(fichier or chemin, delimiter='\t')
+        # Charger depuis le fichier uploadé
+        if fichier:
+            if fichier.name.endswith('.csv'):
+                df = pd.read_csv(fichier)
+            elif fichier.name.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(fichier)
+            elif fichier.name.endswith('.txt'):
+                df = pd.read_csv(fichier, delimiter="\t")
+
+        # Charger depuis le fichier local
+        elif chemin:
+            df = pd.read_csv(chemin)
+
+        # Charger depuis l'URL GitHub
+        elif url:
+            df = pd.read_csv(url)
+
+        # Vérifier et essayer d'autres délimiteurs si nécessaire
+        if len(df.columns) == 1:
+            df = pd.read_csv(fichier or chemin or url, delimiter=';')
+        if len(df.columns) == 1:
+            df = pd.read_csv(fichier or chemin or url, delimiter='\t')
         return df
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier : {e}")
         return None
 
+
 # Charger le jeu de données
-if fichier:
-    df = charger_dataframe(fichier, None)
-else:
-    df = charger_dataframe(None, chemin_local)
+df = charger_dataframe(fichier, "Superstore.csv", url_github)
 
 # Vérification du chargement des données avant de continuer
 if df is not None:
+    # Mettre en majuscule la première lettre de chaque colonne
     df.columns = [col.capitalize() for col in df.columns]
 
     # Afficher l'aperçu des données
