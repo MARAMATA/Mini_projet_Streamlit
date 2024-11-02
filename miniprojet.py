@@ -85,52 +85,50 @@ fichier = st.file_uploader("📁 Charger le fichier de données des ventes", typ
 # Chemin local vers le fichier par défaut
 chemin_local = "~/OneDrive/Bureau/M1DSIA/STREAMLIT/Mini_projet/mini_projet/Superstore.csv"
 
-# Charger le jeu de données
-if fichier is not None:
-    if fichier.name.endswith('.csv'):
-        df = pd.read_csv(fichier)
-    elif fichier.name.endswith(('.xlsx', '.xls')):
-        df = pd.read_excel(fichier)
-    elif fichier.name.endswith('.txt'):
-        df = pd.read_csv(fichier, delimiter="\t")
-else:
-    # Charger le fichier Superstore.csv depuis le chemin local
+def charger_dataframe(fichier, chemin):
+    """Fonction pour charger le dataframe en essayant plusieurs délimiteurs."""
     try:
-        df = pd.read_csv(chemin_local, delimiter='\t')
-        print("Fichier Superstore.csv chargé avec succès depuis le chemin local.")
+        df = pd.read_csv(fichier or chemin, delimiter=',')
+        if len(df.columns) == 1:  # Vérifie si une seule colonne est détectée
+            df = pd.read_csv(fichier or chemin, delimiter=';')
+        if len(df.columns) == 1:  # Réessaie avec une tabulation
+            df = pd.read_csv(fichier or chemin, delimiter='\t')
+        return df
     except Exception as e:
-        print(f"Erreur lors du chargement du fichier Superstore.csv : {e}")
-        df = None
+        st.error(f"Erreur lors du chargement du fichier : {e}")
+        return None
 
-# Affichage du DataFrame chargé
+# Charger le jeu de données
+if fichier:
+    df = charger_dataframe(fichier, None)
+else:
+    df = charger_dataframe(None, chemin_local)
+
+# Vérification du chargement des données avant de continuer
 if df is not None:
+    df.columns = [col.capitalize() for col in df.columns]
+
+    # Afficher l'aperçu des données
     st.write("Aperçu des données :", df.head())
+
+    # Vérifier la colonne 'State' pour ajouter des informations de géolocalisation
+    if 'State' in df.columns:
+        df["State_complet"] = df["State"].map(lambda x: state_info.get(x, {}).get("full_name", ""))
+        df["Latitude"] = df["State"].map(lambda x: state_info.get(x, {}).get("latitude", None))
+        df["Longitude"] = df["State"].map(lambda x: state_info.get(x, {}).get("longitude", None))
+    else:
+        st.error("La colonne 'State' est manquante dans le fichier de données.")
+
+    # Nettoyage des données
+    df.drop_duplicates(inplace=True)
+
+    # Conversion de la date de commande en format datetime
+    if "Order_date" in df.columns:
+        df["Order_date"] = pd.to_datetime(df["Order_date"], errors='coerce')
+    else:
+        st.error("La colonne 'Order_date' est manquante dans le fichier de données.")
 else:
     st.error("Impossible de charger les données.")
-
-    # Vérifier les noms des colonnes
-    print("Colonnes du DataFrame:", df.columns)
-
-    # Adapter en fonction du nom exact de la colonne 'State'
-    if 'State' in df.columns:  # Remplacez 'State' par le nom exact si différent
-        df["State_complet"] = df["State"].map(lambda x: state_info.get(x, {}).get("full_name", ""))
-    else:
-        print("The 'State' column is missing from the dataset.")
-
-# 2. Nettoyage des données
-df.columns = [col.capitalize() for col in df.columns]
-df.drop_duplicates(inplace=True)
-
-
-
-# Map full state names, latitudes, and longitudes to new columns
-df["State_complet"] = df["State"].map(lambda x: state_info.get(x, {}).get("full_name", ""))
-df["Latitude"] = df["State"].map(lambda x: state_info.get(x, {}).get("latitude", None))
-df["Longitude"] = df["State"].map(lambda x: state_info.get(x, {}).get("longitude", None))
-
-# Conversion de la date de commande en format datetime
-if "Order_date" in df.columns:
-    df["Order_date"] = pd.to_datetime(df["Order_date"], errors='coerce')
 
 # 3. Sélection des dates en dehors de la barre latérale
 st.header("Sélection de la période")
