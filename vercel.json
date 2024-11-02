@@ -5,11 +5,6 @@
       "src": "miniprojet.py",
       "use": "@vercel/python"
     }
-  ],
-  "functions": {
-    "miniprojet.py": {
-      "maxDuration": 10,
-      "memory": 128
-    }
-  }
+  ]
 }
+
